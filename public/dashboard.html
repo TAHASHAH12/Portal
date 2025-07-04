@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO Tools Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .welcome-text {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .tool-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+        }
+
+        .tool-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+
+        .tool-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .tool-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .tool-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+        }
+
+        .tool-link:hover {
+            transform: scale(1.05);
+        }
+
+        .page-title {
+            text-align: center;
+            color: white;
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .page-subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            font-size: 1.2em;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .page-title {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <div class="logo">🔐 SEO Tools Portal</div>
+            <div class="user-info">
+                <span class="welcome-text">Welcome, <strong id="username"></strong></span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="page-title">Your SEO Toolkit</div>
+        <div class="page-subtitle">Access your premium SEO analysis tools</div>
+
+        <div class="tools-grid">
+            <div class="tool-card" onclick="accessTool('seo-analyzer')">
+                <div class="tool-icon">🔍</div>
+                <div class="tool-title">SEO Link Opportunity Analyzer</div>
+                <div class="tool-description">
+                    Discover and analyze potential link building opportunities for your website. 
+                    Get insights on competitor backlinks and find high-quality link prospects.
+                </div>
+                <a href="#" class="tool-link" onclick="event.preventDefault(); accessTool('seo-analyzer');">
+                    Launch Tool
+                </a>
+            </div>
+
+            <div class="tool-card" onclick="accessTool('reverse-linkscience')">
+                <div class="tool-icon">🔗</div>
+                <div class="tool-title">Reverse LinkScience</div>
+                <div class="tool-description">
+                    Reverse engineer your competitors' link building strategies. 
+                    Analyze backlink profiles and uncover hidden link opportunities.
+                </div>
+                <a href="#" class="tool-link" onclick="event.preventDefault(); accessTool('reverse-linkscience');">
+                    Launch Tool
+                </a>
+            </div>
+
+            <div class="tool-card" onclick="accessTool('semantic-similarity')">
+                <div class="tool-icon">🧠</div>
+                <div class="tool-title">Semantic Similarity Backlink Analyzer</div>
+                <div class="tool-description">
+                    Use AI-powered semantic analysis to find contextually relevant backlink opportunities. 
+                    Match content themes with potential linking domains.
+                </div>
+                <a href="#" class="tool-link" onclick="event.preventDefault(); accessTool('semantic-similarity');">
+                    Launch Tool
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tool URLs - replace with your actual Streamlit app URLs
+        const toolUrls = {
+            'seo-analyzer': 'https://anchor-modification-jorvz2ergrnngqsdst2f4r.streamlit.app/',
+            'reverse-linkscience': 'https://linkscience-ec3btbud6nqittyksto4wo.streamlit.app/',
+            'semantic-similarity': 'https://cstool-g45qneb96haneuhmsuqlvz.streamlit.app/'
+        };
+
+        // Check authentication on page load
+        function checkAuth() {
+            const token = localStorage.getItem('authToken');
+            const username = localStorage.getItem('username');
+            
+            if (!token || !username) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Display username
+            document.getElementById('username').textContent = username;
+        }
+
+        // Access tool with authentication
+        function accessTool(toolKey) {
+            const token = localStorage.getItem('authToken');
+            
+            if (!token) {
+                alert('Please login first');
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            const toolUrl = toolUrls[toolKey];
+            if (toolUrl) {
+                // In a real implementation, you would pass the auth token to the tool
+                // For now, we'll just open the tool directly
+                window.open(toolUrl, '_blank');
+            } else {
+                alert('Tool not found');
+            }
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('username');
+            window.location.href = 'login.html';
+        }
+
+        // Initialize page
+        checkAuth();
+    </script>
+</body>
+</html>
