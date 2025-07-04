@@ -81,11 +81,20 @@
             box-shadow: 0 15px 35px rgba(0,0,0,0.1);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             cursor: pointer;
+            opacity: 0.5;
         }
 
-        .tool-card:hover {
+        .tool-card.available {
+            opacity: 1;
+        }
+
+        .tool-card.available:hover {
             transform: translateY(-10px);
             box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+        }
+
+        .tool-card.unavailable {
+            cursor: not-allowed;
         }
 
         .tool-icon {
@@ -121,6 +130,12 @@
             transform: scale(1.05);
         }
 
+        .tool-link.disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .page-title {
             text-align: center;
             color: white;
@@ -134,6 +149,38 @@
             color: rgba(255,255,255,0.9);
             font-size: 1.2em;
             margin-bottom: 40px;
+        }
+
+        .loading-message {
+            text-align: center;
+            color: white;
+            font-size: 1.2em;
+            margin-top: 50px;
+        }
+
+        .error-message {
+            text-align: center;
+            color: #ff6b6b;
+            font-size: 1.2em;
+            margin-top: 50px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .permission-badge {
+            display: inline-block;
+            background: #27ae60;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            margin-top: 10px;
+        }
+
+        .permission-badge.denied {
+            background: #e74c3c;
         }
 
         @media (max-width: 768px) {
@@ -166,96 +213,188 @@
         <div class="page-title">Your SEO Toolkit</div>
         <div class="page-subtitle">Access your premium SEO analysis tools</div>
 
-        <div class="tools-grid">
-            <div class="tool-card" onclick="accessTool('seo-analyzer')">
-                <div class="tool-icon">🔍</div>
-                <div class="tool-title">SEO Link Opportunity Analyzer</div>
-                <div class="tool-description">
-                    Discover and analyze potential link building opportunities for your website. 
-                    Get insights on competitor backlinks and find high-quality link prospects.
-                </div>
-                <a href="#" class="tool-link" onclick="event.preventDefault(); accessTool('seo-analyzer');">
-                    Launch Tool
-                </a>
-            </div>
+        <div id="loadingMessage" class="loading-message">
+            Loading your available tools...
+        </div>
 
-            <div class="tool-card" onclick="accessTool('reverse-linkscience')">
-                <div class="tool-icon">🔗</div>
-                <div class="tool-title">Reverse LinkScience</div>
-                <div class="tool-description">
-                    Reverse engineer your competitors' link building strategies. 
-                    Analyze backlink profiles and uncover hidden link opportunities.
-                </div>
-                <a href="#" class="tool-link" onclick="event.preventDefault(); accessTool('reverse-linkscience');">
-                    Launch Tool
-                </a>
-            </div>
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
 
-            <div class="tool-card" onclick="accessTool('semantic-similarity')">
-                <div class="tool-icon">🧠</div>
-                <div class="tool-title">Semantic Similarity Backlink Analyzer</div>
-                <div class="tool-description">
-                    Use AI-powered semantic analysis to find contextually relevant backlink opportunities. 
-                    Match content themes with potential linking domains.
-                </div>
-                <a href="#" class="tool-link" onclick="event.preventDefault(); accessTool('semantic-similarity');">
-                    Launch Tool
-                </a>
-            </div>
+        <div id="toolsGrid" class="tools-grid" style="display: none;">
+            <!-- Tools will be loaded dynamically -->
         </div>
     </div>
 
     <script>
-        // Tool URLs - replace with your actual Streamlit app URLs
-        const toolUrls = {
-            'seo-analyzer': 'https://anchor-modification-jorvz2ergrnngqsdst2f4r.streamlit.app/',
-            'reverse-linkscience': 'https://linkscience-ec3btbud6nqittyksto4wo.streamlit.app/',
-            'semantic-similarity': 'https://cstool-g45qneb96haneuhmsuqlvz.streamlit.app/'
+        // API configuration
+        const API_BASE_URL = window.location.origin + '/api';
+
+        // Tool metadata
+        const toolMetadata = {
+            'seo-analyzer': {
+                icon: '🔍',
+                title: 'SEO Link Opportunity Analyzer',
+                description: 'Discover and analyze potential link building opportunities for your website. Get insights on competitor backlinks and find high-quality link prospects.'
+            },
+            'reverse-linkscience': {
+                icon: '🔗',
+                title: 'Reverse LinkScience',
+                description: 'Reverse engineer your competitors\' link building strategies. Analyze backlink profiles and uncover hidden link opportunities.'
+            },
+            'semantic-similarity': {
+                icon: '🧠',
+                title: 'Semantic Similarity Backlink Analyzer',
+                description: 'Use AI-powered semantic analysis to find contextually relevant backlink opportunities. Match content themes with potential linking domains.'
+            }
         };
 
-        // Check authentication on page load
-        function checkAuth() {
+        // Check authentication and load tools
+        async function initializeDashboard() {
             const token = localStorage.getItem('authToken');
             const username = localStorage.getItem('username');
             
             if (!token || !username) {
-                window.location.href = 'login.html';
+                window.location.href = '/';
                 return;
             }
             
             // Display username
             document.getElementById('username').textContent = username;
+            
+            try {
+                // Verify token and get available tools
+                const response = await fetch(`${API_BASE_URL}/tools`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const availableTools = await response.json();
+                    loadToolsGrid(availableTools);
+                } else if (response.status === 401 || response.status === 403) {
+                    // Token is invalid or expired
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('username');
+                    localStorage.removeItem('userRole');
+                    window.location.href = '/';
+                } else {
+                    throw new Error('Failed to load tools');
+                }
+            } catch (error) {
+                console.error('Dashboard initialization error:', error);
+                showError('Failed to load dashboard. Please try refreshing the page.');
+            }
+        }
+
+        // Load tools grid
+        function loadToolsGrid(availableTools) {
+            const loadingMessage = document.getElementById('loadingMessage');
+            const toolsGrid = document.getElementById('toolsGrid');
+            
+            loadingMessage.style.display = 'none';
+            toolsGrid.style.display = 'grid';
+            
+            // Clear existing content
+            toolsGrid.innerHTML = '';
+            
+            // Create tool cards
+            Object.keys(toolMetadata).forEach(toolKey => {
+                const tool = toolMetadata[toolKey];
+                const isAvailable = availableTools.hasOwnProperty(toolKey);
+                
+                const toolCard = document.createElement('div');
+                toolCard.className = `tool-card ${isAvailable ? 'available' : 'unavailable'}`;
+                
+                if (isAvailable) {
+                    toolCard.onclick = () => accessTool(toolKey);
+                }
+                
+                toolCard.innerHTML = `
+                    <div class="tool-icon">${tool.icon}</div>
+                    <div class="tool-title">${tool.title}</div>
+                    <div class="tool-description">${tool.description}</div>
+                    <a href="#" class="tool-link ${isAvailable ? '' : 'disabled'}" 
+                       onclick="event.preventDefault(); ${isAvailable ? `accessTool('${toolKey}')` : ''};">
+                        ${isAvailable ? 'Launch Tool' : 'Access Denied'}
+                    </a>
+                    <div class="permission-badge ${isAvailable ? '' : 'denied'}">
+                        ${isAvailable ? 'Available' : 'Insufficient Permissions'}
+                    </div>
+                `;
+                
+                toolsGrid.appendChild(toolCard);
+            });
         }
 
         // Access tool with authentication
-        function accessTool(toolKey) {
+        async function accessTool(toolKey) {
             const token = localStorage.getItem('authToken');
             
             if (!token) {
                 alert('Please login first');
-                window.location.href = 'login.html';
+                window.location.href = '/';
                 return;
             }
             
-            const toolUrl = toolUrls[toolKey];
-            if (toolUrl) {
-                // In a real implementation, you would pass the auth token to the tool
-                // For now, we'll just open the tool directly
-                window.open(toolUrl, '_blank');
-            } else {
-                alert('Tool not found');
+            try {
+                const response = await fetch(`${API_BASE_URL}/tool/${toolKey}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // Open the tool in a new tab
+                    window.open(data.accessUrl, '_blank');
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Access denied');
+                }
+            } catch (error) {
+                console.error('Tool access error:', error);
+                alert('Failed to access tool. Please try again.');
             }
         }
 
         // Logout function
-        function logout() {
+        async function logout() {
+            const token = localStorage.getItem('authToken');
+            
+            if (token) {
+                try {
+                    await fetch(`${API_BASE_URL}/logout`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+            }
+            
+            // Clear local storage
             localStorage.removeItem('authToken');
             localStorage.removeItem('username');
-            window.location.href = 'login.html';
+            localStorage.removeItem('userRole');
+            
+            // Redirect to login
+            window.location.href = '/';
         }
 
-        // Initialize page
-        checkAuth();
+        // Show error message
+        function showError(message) {
+            const loadingMessage = document.getElementById('loadingMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            loadingMessage.style.display = 'none';
+            errorMessage.style.display = 'block';
+            errorMessage.textContent = message;
+        }
+
+        // Initialize dashboard on page load
+        initializeDashboard();
     </script>
 </body>
 </html>

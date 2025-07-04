@@ -1,4 +1,4 @@
- // server.js - Node.js Express Authentication Server
+// server.js - Node.js Express Authentication Server
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -7,12 +7,12 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this';
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this-in-production';
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Serve static files
+app.use(express.static(path.join(__dirname, 'public'))); // Serve static files from public directory
 
 // In-memory user store (replace with database in production)
 const users = [
@@ -55,6 +55,17 @@ const toolConfigs = {
     }
 };
 
+// Helper function to check permissions
+function hasPermission(userRole, requiredRole) {
+    const roleHierarchy = {
+        'demo': 0,
+        'user': 1,
+        'admin': 2
+    };
+
+    return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
+}
+
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -66,6 +77,7 @@ const authenticateToken = (req, res, next) => {
 
     jwt.verify(token, JWT_SECRET, (err, user) => {
         if (err) {
+            console.error('Token verification error:', err);
             return res.status(403).json({ error: 'Invalid or expired token' });
         }
         req.user = user;
@@ -133,63 +145,66 @@ app.get('/api/verify', authenticateToken, (req, res) => {
 
 // Get available tools
 app.get('/api/tools', authenticateToken, (req, res) => {
-    const userRole = req.user.role;
-    const availableTools = {};
+    try {
+        const userRole = req.user.role;
+        const availableTools = {};
 
-    Object.keys(toolConfigs).forEach(toolKey => {
-        const tool = toolConfigs[toolKey];
-        if (hasPermission(userRole, tool.requiredRole)) {
-            availableTools[toolKey] = {
-                name: tool.name,
-                url: tool.url
-            };
-        }
-    });
+        Object.keys(toolConfigs).forEach(toolKey => {
+            const tool = toolConfigs[toolKey];
+            if (hasPermission(userRole, tool.requiredRole)) {
+                availableTools[toolKey] = {
+                    name: tool.name,
+                    url: tool.url
+                };
+            }
+        });
 
-    res.json(availableTools);
+        res.json(availableTools);
+    } catch (error) {
+        console.error('Get tools error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
 // Get tool access URL with auth
 app.get('/api/tool/:toolKey', authenticateToken, (req, res) => {
-    const { toolKey } = req.params;
-    const tool = toolConfigs[toolKey];
+    try {
+        const { toolKey } = req.params;
+        const tool = toolConfigs[toolKey];
 
-    if (!tool) {
-        return res.status(404).json({ error: 'Tool not found' });
+        if (!tool) {
+            return res.status(404).json({ error: 'Tool not found' });
+        }
+
+        if (!hasPermission(req.user.role, tool.requiredRole)) {
+            return res.status(403).json({ error: 'Insufficient permissions' });
+        }
+
+        // Log the access
+        console.log(`User ${req.user.username} accessed tool: ${toolKey}`);
+
+        res.json({
+            toolName: tool.name,
+            accessUrl: tool.url,
+            message: 'Access granted'
+        });
+    } catch (error) {
+        console.error('Tool access error:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
-
-    if (!hasPermission(req.user.role, tool.requiredRole)) {
-        return res.status(403).json({ error: 'Insufficient permissions' });
-    }
-
-    // In a real implementation, you might:
-    // 1. Generate a temporary access token for the tool
-    // 2. Log the access
-    // 3. Return a proxied URL with authentication
-
-    res.json({
-        toolName: tool.name,
-        accessUrl: tool.url,
-        message: 'Access granted'
-    });
 });
 
 // Logout endpoint (for token blacklisting in production)
 app.post('/api/logout', authenticateToken, (req, res) => {
-    // In production, you would blacklist the token
-    res.json({ message: 'Logged out successfully' });
+    try {
+        // In production, you would blacklist the token in a database or cache
+        console.log(`User ${req.user.username} logged out`);
+        res.json({ message: 'Logged out successfully' });
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
-
-// Helper function to check permissions
-function hasPermission(userRole, requiredRole) {
-    const roleHierarchy = {
-        'demo': 0,
-        'user': 1,
-        'admin': 2
-    };
-
-    return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
-}
 
 // Serve frontend files
 app.get('/', (req, res) => {
@@ -200,17 +215,47 @@ app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+});
+
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
+    res.status(404).json({ error: 'API endpoint not found' });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    console.error('Unhandled error:', err.stack);
     res.status(500).json({ error: 'Something went wrong!' });
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    process.exit(0);
+});
+
+process.on('SIGINT', () => {
+    console.log('SIGINT received, shutting down gracefully');
+    process.exit(0);
 });
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Login at: http://localhost:${PORT}`);
-    console.log(`Dashboard at: http://localhost:${PORT}/dashboard`);
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📱 Login at: http://localhost:${PORT}`);
+    console.log(`📊 Dashboard at: http://localhost:${PORT}/dashboard`);
+    console.log(`🔧 API Health: http://localhost:${PORT}/api/health`);
+    console.log('\n👤 Test Users:');
+    console.log('  - admin / password123 (admin role)');
+    console.log('  - user1 / seotools2025 (user role)');
+    console.log('  - demo / demo123 (demo role)');
 });
 
 module.exports = app;
