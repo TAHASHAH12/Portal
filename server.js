@@ -52,7 +52,15 @@ const toolConfigs = {
         url: 'https://cstool-g45qneb96haneuhmsuqlvz.streamlit.app/',
         name: 'Semantic Similarity Backlink Analyzer',
         requiredRole: 'user'
+    },
+
+    'bert-semantic-analyzer': {
+        url:'https://bert-semantic-similarity-4y6jbxjsaprrkhwjxeggnr.streamlit.app/',
+        name: 'bert-semantic-analyzer',
+        requiredRole: 'user'
+
     }
+
 };
 
 // Helper function to check permissions
