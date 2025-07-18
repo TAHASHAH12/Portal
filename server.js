@@ -59,6 +59,11 @@ const toolConfigs = {
         name: 'bert-semantic-analyzer',
         requiredRole: 'user'
 
+    },
+    'Internal Link Analyzer': {
+        url:'https://applinkanalysis-ljcdxjurbnbnlwnxwpdctk.streamlit.app/',
+        name: 'Universal PageRank SEO Analyzer',
+        requiredRole: 'user'
     }
 
 };
