@@ -64,6 +64,11 @@ const toolConfigs = {
         url:'https://applinkanalysis-ljcdxjurbnbnlwnxwpdctk.streamlit.app/',
         name: 'Universal PageRank SEO Analyzer',
         requiredRole: 'user'
+    },
+    'AI Citation Tool': {
+        url:'https://aicitationtool-gkkavv28m5vq6z2ddgg9yw.streamlit.app/',
+        name: 'Ai Citation Tool',
+        requiredRole:'user' 
     }
 
 };
