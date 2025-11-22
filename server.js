@@ -69,7 +69,26 @@ const toolConfigs = {
         url:'https://aicitationtool-gkkavv28m5vq6z2ddgg9yw.streamlit.app/',
         name: 'Ai Citation Tool',
         requiredRole:'user' 
-    }
+    },
+
+    'Link Farm + Model Probing Tool': {
+        url: 'https://link-farming-analyzer-b8zg2abuyl6xcpqxn87nnx.streamlit.app/',
+        name: 'Link Farm + Model Probing Tool',
+        requiredRole: 'user'
+    },
+    
+    'WLDM Content Reranking Tool': {
+        url: 'https://wldmcontent.streamlit.app/',
+        name: 'WLDM Content Reranking Tool',
+        requiredRole: 'user'
+    },
+    
+    'WLDM Advance Query AI': {
+        url: 'https://wldmqueryai.streamlit.app/',
+        name: 'WLDM Advance Query AI',
+        requiredRole: 'user'
+    },
+    
 
 };
 
