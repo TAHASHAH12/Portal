@@ -88,6 +88,12 @@ const toolConfigs = {
         name: 'WLDM Advance Query AI',
         requiredRole: 'user'
     },
+    'Cosine Similarity Tool Advance':{
+        url: 'https://cs-tool-advance-zw39afmluduwmhk42snrxn.streamlit.app/',
+        name: 'Cosine Similarity Tool Advance',
+        requiredRole: 'user'
+
+    }
     
 
 };
